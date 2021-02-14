@@ -21,6 +21,21 @@ const reducer = (value, action) => {
         loading: false,
         error: action.payload,
       };
+    case 'ADD_ITEMS_SUCCESS':
+      return {
+        ...value,
+        items: [
+          ...value.items,
+          action.payload,
+        ],
+        loading: false,
+      };
+    case 'ADD_ITEMS_ERROR':
+      return {
+        ...value,
+        loading: false,
+        error: 'An error occurred.',
+      };
     default:
       return value;
   }
@@ -38,20 +53,46 @@ async function fetchData(dataSource) {
   }
 }
 
+async function postData(dataSource, content) {
+  try {
+    const data = await fetch(dataSource, {
+      method: 'POSt',
+      body: JSON.stringify(content),
+    });
+    const dataJSON = await data.json();
+    if (dataJSON) {
+      return await ({ data: dataJSON, error: false });
+    }
+  } catch (error) {
+    return ({ data: false, error: error.message});
+  }
+}
+
 export const ItemsContext = React.createContext();
 
 const ItemsContextProvider = ({ children }) => {
   const [value, dispatch] = React.useReducer(reducer, initialValue);
+
   const getItemsRequest = async (id) => {
-    const result = await fetchData(`https://my-json-server.typicode.com/PacktPublishing/React-Projects/lists/${id}/items`)
+    const result = await fetchData(`https://my-json-server.typicode.com/PacktPublishing/React-Projects/items/${id}/items`)
     if (result && result.data.length) {
       dispatch({ type: 'GET_ITEMS_SUCCESS', payload: result.data });
     } else {
       dispatch({ type: 'GET_ITEMS_ERROR', payload: result.error });
     }
   }
+
+  const addItemRequest = async (content) => {
+    const result = await postData('https://my-json-server.typicode.com/PacktPublishing/React-Projects/items', content);
+    if (result.data && result.data.hasOwnProperty('id')) {
+      dispatch({ type: 'ADD_ITEMS_SUCCESS', payload: content });
+    } else {
+      dispatch({ type: 'ADD_ITEMS_ERROR', payload: result.error })
+    }
+  }
+
   return (
-    <ItemsContext.Provider value={{ ...value, getItemsRequest }}>
+    <ItemsContext.Provider value={{ ...value, getItemsRequest, addItemRequest }}>
       { children }
     </ItemsContext.Provider>
   );
