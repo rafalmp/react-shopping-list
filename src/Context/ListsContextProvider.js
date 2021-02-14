@@ -1,14 +1,35 @@
 import React from 'react';
-import withDataFetching from '../withDataFetching';
 
 export const ListsContext = React.createContext();
 
-const ListsContextProvider = ({ children, data }) => (
-  <ListsContext.Provider value={{ lists: data }}>
-    {children}
-  </ListsContext.Provider>
-);
+async function fetchData(dataSource) {
+  try {
+    const data = await fetch(dataSource);
+    const dataJSON = await data.json();
+    if (dataJSON) {
+      return await ({ data: dataJSON, error: false });
+    }
+  } catch(error) {
+    return ({ data: false, error: error.message });
+  }
+}
 
-export default withDataFetching({
-  dataSource: 'https://my-json-server.typicode.com/PacktPublishing/React-Projects/lists',
-})(ListsContextProvider);
+const ListsContextProvider = ({ children }) => {
+  const [lists, setLists] = React.useState([]);
+  React.useEffect(() => {
+    const asyncFetchData = async dataSource => {
+      const result = await fetchData(dataSource);
+      setLists([...result.data]);
+    };
+    asyncFetchData('https://my-json-server.typicode.com/PacktPublishing/React-Projects/lists').then()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData, setLists]);
+
+  return (
+    <ListsContext.Provider value={{ lists }}>
+      {children}
+    </ListsContext.Provider>
+  )
+};
+
+export default ListsContextProvider;
